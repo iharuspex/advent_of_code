@@ -20,13 +20,22 @@ begin
       Commands_IO.Get (File => Input_File, Item => Command);
       Get (File => Input_File, Item => Value);
 
-      Commands_IO.Put (Command);
-      Put (Item => Value, Width => 1);
+      -- Commands_IO.Put (Command);
+      -- Put (Item => Value, Width => 1);
+      -- New_Line;
 
-      New_Line;
+      case Command is
+         when forward =>
+            Horizontal_Pos := Horizontal_Pos + Value;
+         when down =>
+            Depth := Depth + Value;
+         when up =>
+            Depth := Depth - Value;
+      end case;
+
    end loop;
 
-   -- TODO
-
    Close (Input_File);
+
+   Put (Horizontal_Pos * Depth);
 end Main;
