@@ -19,8 +19,16 @@ procedure Main is
      Ada.Containers.Vectors (Positive, Bounded_String);
    use Str_Vector;
 
-   --  package Vec_Vector is new
-   --    Ada.Containers.Vectors (Positive, Str_Vector.Vector, Str_Vector."=");
+   function Vec_Hash (V : Vector) return Ada.Containers.Hash_Type is
+      use type Ada.Containers.Hash_Type;
+      Ret : Ada.Containers.Hash_Type := 0;
+   begin
+      for I of V loop
+         Ret := Ret xor Hash (I);
+      end loop;
+
+      return Ret;
+   end Vec_Hash;
 
    package Cave_Map is new
      Ada.Containers.Indefinite_Hashed_Maps
@@ -31,18 +39,32 @@ procedure Main is
         "="             => Str_Vector."=");
    use Cave_Map;
 
+   -- Store Visited caves
    package Cave_Set is new
      Ada.Containers.Hashed_Sets
        (Element_Type        => Bounded_String,
         Hash                => Hash,
         Equivalent_Elements => "=");
 
+   -- Store founded paths
+   package Path_Sets is new
+     Ada.Containers.Hashed_Sets
+       (Element_Type        => Vector,
+        Hash                => Vec_Hash,
+        Equivalent_Elements => "=",
+        "="                 => "=");
+
+   type Visited_Caves is record
+      Once: Cave_Set.Set;
+      Twice: Bounded_String;
+   end record;
+
 
    Input_File : File_Type;
 
    Caves_HM : Map := Empty_Map;
 
-   Result : Natural := 0;
+   Result : Path_Sets.Set;
 
    Start : Bounded_String := To_Bounded_String ("start");
 
@@ -76,27 +98,48 @@ procedure Main is
 
 
    function Is_Small (Cave: Bounded_String) return Boolean is
-      (Element (Cave, 1) in 'a' .. 'z');
+     (Element (Cave, 1) in 'a' .. 'z');
 
 
    procedure Find_Paths
      (Graph: Map;
       Curr_Cave: Bounded_String;
-      Visited: Cave_Set.Set;
-      Result: in out Natural)
+      Visited: Visited_Caves;
+      Path : Vector;
+      Result: in out Path_Sets.Set)
    is
       use type Cave_Set.Set;
+
+      Copy : Str_Vector.Vector := Str_Vector.Copy (Path);
    begin
       if Curr_Cave = "end" then
-         Result := Result + 1;
+         Result.Include (Path);
+
+         for I of Path loop
+            Put (To_String (I));
+            Put (",");
+         end loop;
+         New_Line;
+
          return;
       end if;
+      Copy.Append (Curr_Cave);
 
       for C of Graph (Curr_Cave) loop
          if not Is_Small (C) then
-            Find_Paths (Graph, C, Visited, Result);
-         elsif not Visited.Contains (C) then
-            Find_Paths (Graph, C, Visited or Cave_Set.To_Set (C) , Result);
+            Find_Paths (Graph, C, Visited, Copy, Result);
+         elsif not Visited.Once.Contains (C) then
+            if Visited.Twice = "" then
+               Find_Paths (Graph, C, (Visited.Once, C), Copy, Result);
+            end if;
+
+            Find_Paths
+              (Graph,
+               C,
+               (Visited.Once or Cave_Set.To_Set (C), Visited.Twice),
+               Copy,
+               Result);
+
          end if;
       end loop;
    end Find_Paths;
@@ -133,9 +176,14 @@ begin
    Print_Map (Caves_HM);
    New_Line;
 
-   Find_Paths (Caves_HM, To_Bounded_String ("start"), Cave_Set.To_Set (Start), Result);
+   Find_Paths
+     (Caves_HM,
+      Start,
+      (Once => Cave_Set.To_Set (Start), Twice => <>),
+      Empty_Vector,
+      Result);
 
-   Put_Line ("Result: " & Result'Image);
+   Put_Line ("Result: " & Result.Length'Image);
 
    Close (Input_File);
 
