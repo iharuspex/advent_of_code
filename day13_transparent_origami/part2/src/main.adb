@@ -15,7 +15,7 @@ procedure Main is
    Input_File : File_Type;
    Transp_Paper : Paper (0 .. 2000, 0 .. 2000) := (others => (others => False));
 
-   Fld : Folding;
+   procedure Read_And_Fold (P: Paper);
 
    procedure String_Split
      (In_Str: in String;
@@ -34,6 +34,7 @@ procedure Main is
       Part2 := Natural'Value (In_Str (Delimiter_Idx + 1 .. In_Str'Last));
    end String_Split;
 
+
    procedure Print_Paper (P : Paper) is
    begin
       for I in P'Range (1) loop
@@ -41,7 +42,7 @@ procedure Main is
             if P (I, J) then
                Put ("#");
             else
-               Put (".");
+               Put (" ");
             end if;
          end loop;
          New_Line;
@@ -101,28 +102,14 @@ procedure Main is
          when horizontal =>
             declare
                Result : constant Paper := H_Fold (P, F.Val);
-               Count : Natural := 0;
             begin
-               for Dot of Result loop
-                  if Dot then
-                     Count := Count + 1;
-                  end if;
-               end loop;
-               --Print_Paper (Result);
-               Put_Line (Count'Image);
+               Read_And_Fold (Result);
             end;
          when vertical =>
             declare
                Result : constant Paper := V_Fold (P, F.Val);
-               Count : Natural := 0;
             begin
-               for Dot of Result loop
-                  if Dot then
-                     Count := Count + 1;
-                  end if;
-               end loop;
-               --Print_Paper (Result);
-               Put_Line (Count'Image);
+               Read_And_Fold (Result);
             end;
       end case;
    end Do_Fold;
@@ -144,12 +131,21 @@ procedure Main is
       end if;
    end Read_Folding;
 
+   procedure Read_And_Fold (P: Paper) is
+      Curr_Folding : Folding;
+   begin
+      if End_Of_File (Input_File) then
+         Print_Paper (P);
+      else
+         Read_Folding (Curr_Folding);
+         Do_Fold (P, Curr_Folding);
+      end if;
+   end;
 
 begin
    Open (Input_File, In_File, "input.txt");
 
-   while not End_Of_File (Input_File) loop
-
+   loop
       declare
          Line : String := Get_Line (Input_File);
          X, Y : Natural;
@@ -158,15 +154,9 @@ begin
          String_Split (Line, ",", X, Y);
          Transp_Paper (Y, X) := True;
       end;
-
    end loop;
 
-   Read_Folding (Fld);
-
-   --Print_Paper (Transp_Paper);
-   --New_Line;
-
-   Do_Fold (Transp_Paper, Fld);
+   Read_And_Fold (Transp_Paper);
 
    Close (Input_File);
 
