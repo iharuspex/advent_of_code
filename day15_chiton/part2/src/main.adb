@@ -1,11 +1,11 @@
+-- Incorrect :(
+
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Integer_Text_IO; use Ada.Integer_Text_IO;
-with Ada.Containers.Vectors;
 
 
 procedure Main is
    type Grid is array (Natural range <>, Natural range <>) of Natural;
-
    subtype Tile_Side is Natural range 0 .. 99;
 
 
@@ -14,7 +14,7 @@ procedure Main is
       for I in G'Range (1) loop
          for J in G'Range (2) loop
             Put (G (I, J), 1);
-            Put (" ");
+            --Put (" ");
          end loop;
          New_Line;
       end loop;
@@ -50,7 +50,7 @@ procedure Main is
 
    function Get_Best_Path (Map: in out Grid) return Natural is
    begin
-      for I in 1 .. Map'Last(1) loop
+      for I in 1 .. Map'Last(2) loop
          Map (0, I) := Map (0, I) + Map (0, I - 1);
       end loop;
 
@@ -70,8 +70,8 @@ procedure Main is
 
    Input_File : File_Type;
    Tile       : Grid (Tile_Side, Tile_Side);
-   Risk_Map   : Grid (0 .. 499,
-                      0 .. 499) := (others => (others => 0));
+   Risk_Map   : Grid (0 .. (Tile_Side'Last + 1) * 5 - 1,
+                      0 .. (Tile_Side'Last + 1) * 5 - 1) := (others => (others => 0));
 
 begin
    Open (Input_File, In_File, "input.txt");
@@ -88,7 +88,7 @@ begin
       end loop;
    end loop;
 
-   Print_Grid (Tile);
+   --Print_Grid (Tile);
 
    -- Заполним всю карту на основе тайла
    declare
@@ -109,10 +109,10 @@ begin
       end loop;
    end;
 
-   --Print_Grid (Risk_Map);
+   Print_Grid (Risk_Map);
 
    New_Line;
-   Put_Line (Natural'Image (Get_Best_Path(Tile)));
+   Put_Line (Natural'Image (Get_Best_Path(Risk_Map)));
 
    Close (Input_File);
 
