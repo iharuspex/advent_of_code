@@ -35,7 +35,7 @@ then
     cp -r template "$NEW_PROJECT_PATH"
 fi
 
-NEW_PROJECT_NAME=$(sed -r 's/(^|_)([a-z])/\U\2/g')
+NEW_PROJECT_NAME=$(echo "$PROJECT_NAME" | sed -r 's/(^|_)([a-z])/\U_\2/g' | sed -r 's/^.//')
 
 sed -i "s/Template/$NEW_PROJECT_NAME/" "$NEW_PROJECT_PATH"/template.gpr
 
