@@ -1,5 +1,6 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Integer_Text_IO; use Ada.Integer_Text_IO;
+with Ada.Containers.Vectors;
 
 
 procedure Main is
@@ -7,6 +8,14 @@ procedure Main is
    Result    : Integer := 0;
    New_Value : Integer := 0;
 
+   package Calories_Sum is new Ada.Containers.Vectors
+    (Index_Type => Natural,
+     Element_Type => Integer);
+   package Sorter is new Calories_Sum.Generic_Sorting;
+
+
+   Calories_List : Calories_Sum.Vector;
+   Cursor : Calories_Sum.Cursor;
 begin
    Open (Input_File, In_File, "input.txt");
 
@@ -15,18 +24,24 @@ begin
          Line : String := Get_Line (Input_File);
       begin
          if Line = "" then
-            if Result < New_Value then
-                Result := New_Value;
-            end if;
-            New_Value := 0;
+            Calories_List.Append(New_Value);
+            New_Value := 0; 
          else
             New_Value := New_Value + Integer'Value(Line);
          end if;
       end;
    end loop;
-
-   Put_Line (Result'Image);
-
    Close (Input_File);
+
+   Sorter.Sort(Calories_List);
+
+   Put_Line ("First part answer: " & Calories_List.Last_Element'Image);
+
+   --  Bug! >:(
+   for I in Calories_List.Last_Index - 3 .. Calories_List.Last_Index loop
+      Result := Result + Calories_List (I);
+   end loop;
+
+   Put_Line ("Second part answer: " & Result'Image);
 
 end Main;
