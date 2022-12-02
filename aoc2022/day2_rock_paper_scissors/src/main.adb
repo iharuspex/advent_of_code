@@ -7,7 +7,7 @@ procedure Main is
 begin
    Open (Input_File, In_File, "input.txt");
 
-   Put_Line ("Hello from Advent of Code template program!");
+   Put_Line ("Hello from AOC2021 template program!");
 
    Close (Input_File);
 
