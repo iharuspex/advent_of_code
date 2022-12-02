@@ -13,9 +13,8 @@ procedure Main is
      Element_Type => Integer);
    package Sorter is new Calories_Sum.Generic_Sorting;
 
-
    Calories_List : Calories_Sum.Vector;
-   Cursor : Calories_Sum.Cursor;
+
 begin
    Open (Input_File, In_File, "input.txt");
 
@@ -37,8 +36,7 @@ begin
 
    Put_Line ("First part answer: " & Calories_List.Last_Element'Image);
 
-   --  Bug! >:(
-   for I in Calories_List.Last_Index - 3 .. Calories_List.Last_Index loop
+   for I in Calories_List.Last_Index - 2 .. Calories_List.Last_Index loop
       Result := Result + Calories_List (I);
    end loop;
 
