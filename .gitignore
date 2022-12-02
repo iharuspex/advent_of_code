@@ -4,3 +4,9 @@
 
 # Ada Library Information
 *.ali
+
+# OS
+.directory
+
+# IDE
+.vscode/
