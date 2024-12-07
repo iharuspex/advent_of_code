@@ -1,6 +1,7 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Strings.Fixed; use Ada.Strings.Fixed;
 with Ada.Integer_Text_IO; use Ada.Integer_Text_IO;
+with Ada.Long_Long_Integer_Text_IO; use Ada.Long_Long_Integer_Text_IO;
 with Interfaces; use Interfaces;
 with Ada.Containers.Vectors;
 
@@ -13,7 +14,7 @@ procedure Main is
    package Natural_Vectors is new
      Ada.Containers.Vectors
        (Index_Type => Positive,
-        Element_Type => Natural);
+        Element_Type => Long_Natural);
 
    package Character_Vectors is new
      Ada.Containers.Vectors
@@ -37,7 +38,7 @@ procedure Main is
    -- Print_Equation --
    --------------------
 
-   procedure Print_Equation (Val : Natural; Num : Natural_Vectors.Vector) is
+   procedure Print_Equation (Val : Long_Natural; Num : Natural_Vectors.Vector) is
    begin
       Put (Val'Image & " :");
       for I in Num.First_Index..Num.Last_Index loop
@@ -50,11 +51,11 @@ procedure Main is
    -- Parse_String --
    ------------------
 
-   procedure Parse_String (Line : String; Val : out Natural; Vec : out Natural_Vectors.Vector) is
+   procedure Parse_String (Line : String; Val : out Long_Natural; Vec : out Natural_Vectors.Vector) is
       Start_Idx : Natural := 1;
       End_Idx : Natural := 1;
       Last : Natural := 0;
-      Num : Natural := 0;
+      Num : Long_Natural := 0;
    begin
       -- get Val
       End_Idx := Index (Line, ":");
@@ -81,10 +82,10 @@ procedure Main is
    ---------------
 
    function Calculate (Vec : Natural_Vectors.Vector; Operators : Operators_Type)
-                       return Natural
+                       return Long_Natural
    is
       Operands : Natural_Vectors.Vector := Vec;
-      Eq_Res : Natural := Operands (1);
+      Eq_Res : Long_Natural := Operands (1);
    begin
       for I in Operators'Range loop
          if (Operators (I) = '+') then
@@ -109,13 +110,13 @@ procedure Main is
    -- Process_Equation --
    ----------------------
 
-   function Process_Equation (Val : Natural; Operands : in out Natural_Vectors.Vector) return Boolean
+   function Process_Equation (Val : Long_Natural; Operands : in out Natural_Vectors.Vector) return Boolean
    is
       Operators : Operators_Type (1 .. Operands.Last_Index-1) := (others => '+');
       Operators_Bits : Natural := Operands.Last_Index-1;
       Operators_Max_Value : Natural := 2**Operators_Bits - 1;
 
-      Eq_Res : Natural := 0;
+      Eq_Res : Long_Natural := 0;
    begin
       for Value in 0 .. Operators_Max_Value loop
          for Bit in 0 .. Operators_Bits - 1 loop
@@ -146,9 +147,9 @@ procedure Main is
    -- Process_String --
    --------------------
 
-   function Process_String (Line : String) return Natural
+   function Process_String (Line : String) return Long_Natural
    is
-      Val : Natural;
+      Val : Long_Natural;
       Vec : Natural_Vectors.Vector;
       Stats : Boolean;
    begin
@@ -169,7 +170,7 @@ procedure Main is
    -----------
 
    procedure Part1 (F : File_Type) is
-      Result : Natural := 0;
+      Result : Long_Natural := 0;
    begin
       while not End_Of_File (F) loop
          declare
