@@ -6,7 +6,6 @@ with Interfaces; use Interfaces;
 with Ada.Containers.Vectors;
 
 procedure Main is
-   --  type Numbers_Type is array (1..20) of Natural;
    type Operators_Type is array (Positive range <>) of Character;
 
    subtype Long_Natural is Long_Long_Integer range 0 .. +(2**63 - 1);
@@ -20,16 +19,6 @@ procedure Main is
      Ada.Containers.Vectors
        (Index_Type => Positive,
         Element_Type => Character);
-
-   --  type Equation_Type is record
-   --
-   --  end record;
-
-   --  Test_Value : Natural := 0;
-   --  Operators : Operators_Type;
-   --  Numbers : Natural_Vectors.Vector;
-
-   --  Numbers_Count : Natural := 0;
 
    F : File_Type;
 
@@ -89,19 +78,13 @@ procedure Main is
    begin
       for I in Operators'Range loop
          if (Operators (I) = '+') then
-            --  Operands (I) := Operands (I) + Operands (I+1);
-            --  Operands.Delete (I+1);
             Eq_Res := Eq_Res + Operands (I+1);
          else
-            --  Operands (I) := Operands (I) * Operands (I+1);
-            --  Operands.Delete (I+1);
             Eq_Res := Eq_Res * Operands (I+1);
          end if;
 
          exit when Operands.First_Index = Operands.Last_Index;
       end loop;
-
-      --  Eq_Res := Operands (1);
 
       return Eq_Res;
    end Calculate;

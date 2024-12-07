@@ -57,10 +57,18 @@ procedure Main is
       Put_Line ("===============");
    end Print_Guard;
 
+   ----------------
+   -- Turn_Guard --
+   ----------------
+
    procedure Turn_Guard (G : in out Guard_Type) is
    begin
       G.View_Dir := G.View_Dir + 1;
    end Turn_Guard;
+
+   ----------
+   -- Move --
+   ----------
 
    function Move (G : Guard_Type) return Guard_Type is
       New_G : Guard_Type := G;
@@ -77,6 +85,10 @@ procedure Main is
       end case;
       return New_G;
    end Move;
+
+   -------------------------
+   -- Simulate_Guard_Path --
+   -------------------------
 
    function Simulate_Guard_Path (Map : Map_Type; Map_Size : Natural; Guard : Guard_Type) return Boolean is
       Position : Guard_Type := Guard;
@@ -108,6 +120,10 @@ procedure Main is
 
       return False;
    end Simulate_Guard_Path;
+
+   -------------------------
+   -- Find_Loop_Positions --
+   -------------------------
 
    function Find_Loop_Positions (Map : in out Map_Type; Map_Size : Natural; Guard : Guard_Type) return Natural is
       Original_Map : Map_Type (1 .. Map_Size) := (others => (others => ' '));
@@ -162,6 +178,6 @@ begin
 
    Close (F);
 
-   Put_Line ("Number of different positions for the obstruction:" &
+   Put_Line ("Result:" &
                Integer'Image (Find_Loop_Positions (Map, Map_Size, Guard)));
 end Main;
