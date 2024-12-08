@@ -66,6 +66,20 @@ procedure Main is
       end loop;
    end Parse_String;
 
+   ------------
+   -- Concat --
+   ------------
+
+   function Concat (A, B : Long_Natural) return Long_Natural is
+      A_Str : String := Long_Natural'Image(A);
+      B_Str : String := Long_Natural'Image(B);
+      Result_Str : String := A_Str(2 .. A_Str'Last) & B_Str(2 .. B_Str'Last);
+      Result : Long_Natural;
+   begin
+      Result := Long_Natural'Value(Result_Str);
+      return Result;
+   end Concat;
+
    ---------------
    -- Calculate --
    ---------------
@@ -79,8 +93,10 @@ procedure Main is
       for I in Operators'Range loop
          if (Operators (I) = '+') then
             Eq_Res := Eq_Res + Operands (I+1);
-         else
+         elsif Operators (I) = '*' then
             Eq_Res := Eq_Res * Operands (I+1);
+         else
+            Eq_Res := Concat (Eq_Res, Operands (I+1));
          end if;
 
          exit when Operands.First_Index = Operands.Last_Index;
@@ -93,7 +109,7 @@ procedure Main is
    -- Process_Equation --
    ----------------------
 
-   function Process_Equation (Val : Long_Natural; Operands : in out Natural_Vectors.Vector) return Boolean
+   function Process_Equation_P1 (Val : Long_Natural; Operands : in out Natural_Vectors.Vector) return Boolean
    is
       Operators : Operators_Type (1 .. Operands.Last_Index-1) := (others => '+');
       Operators_Bits : Natural := Operands.Last_Index-1;
@@ -124,13 +140,50 @@ procedure Main is
       end if;
 
       return False;
-   end Process_Equation;
+   end Process_Equation_P1;
+
+   -------------------------
+   -- Process_Equation_P2 --
+   -------------------------
+
+   procedure Process_Equation_P2 (Val : Long_Natural;
+                                  Operands : in out Natural_Vectors.Vector;
+                                  Operators_Num : Natural;
+                                  Operators : in out Operators_Type;
+                                  Index : Natural;
+                                  Stop : in out Boolean)
+   is
+      Operator : String := "+*|";
+      Res_Eq : Long_Natural := 0;
+
+   begin
+      if Index > Operators_Num then
+         for I in Operators'Range loop
+            Put(Operators(I) & " ");
+            --
+            Res_Eq := Calculate (Operands, Operators);
+            if Res_Eq = Val then
+               Stop := True;
+               exit;
+            end if;
+         end loop;
+         New_Line;
+      else
+         for I in Operator'Range loop
+            Operators(Index) := Operator(I);
+            Process_Equation_P2(Val, Operands, Operators_Num, Operators, Index + 1, Stop);
+            if Stop then
+               exit;
+            end if;
+         end loop;
+      end if;
+   end Process_Equation_P2;
 
    --------------------
    -- Process_String --
    --------------------
 
-   function Process_String (Line : String) return Long_Natural
+   function Process_String_P1 (Line : String) return Long_Natural
    is
       Val : Long_Natural;
       Vec : Natural_Vectors.Vector;
@@ -139,7 +192,7 @@ procedure Main is
       Parse_String (Line, Val, Vec);
       Print_Equation (Val, Vec);
 
-      Stats := Process_Equation(Val, Vec);
+      Stats := Process_Equation_P1(Val, Vec);
       New_Line;
 
       if Stats = True then
@@ -147,7 +200,40 @@ procedure Main is
       end if;
 
       return 0;
-   end Process_String;
+   end Process_String_P1;
+
+   -----------------------
+   -- Process_String_P2 --
+   -----------------------
+
+   function Process_String_P2 (Line : String) return Long_Natural
+   is
+      Val : Long_Natural;
+      Vec : Natural_Vectors.Vector;
+      --  Stats : Boolean;
+      Stop : Boolean := False;
+
+      Eq_Res : Long_Natural := 0;
+   begin
+      Parse_String (Line, Val, Vec);
+      Print_Equation (Val, Vec);
+
+      declare
+         Operators : Operators_Type (1 .. Vec.Last_Index-1) := (others => '+');
+         Operators_Num : Natural := Vec.Last_Index-1;
+      begin
+         Process_Equation_P2 (Val, Vec, Operators_Num, Operators, 1, Stop);
+         New_Line;
+      end;
+
+
+      if Stop = True then
+         return Val;
+      end if;
+
+      return 0;
+   end Process_String_P2;
+
    -----------
    -- Part1 --
    -----------
@@ -159,17 +245,37 @@ procedure Main is
          declare
             Line : String := Get_Line (F);
          begin
-            Result := Result + Process_String (Line);
+            Result := Result + Process_String_P1 (Line);
          end;
       end loop;
 
       Put_Line ("Part1: " & Result'Image);
    end Part1;
 
+   -----------
+   -- Part2 --
+   -----------
+
+   procedure Part2 (F : File_Type) is
+      Result : Long_Natural := 0;
+   begin
+      while not End_Of_File (F) loop
+         declare
+            Line : String := Get_Line (F);
+         begin
+            Result := Result + Process_String_P2 (Line);
+         end;
+      end loop;
+
+      Put_Line ("Part2: " & Result'Image);
+   end Part2;
+
 begin
    Open (F, In_File, "input.txt");
 
    Part1 (F);
+   Reset (F);
+   Part2 (F);
 
    Close (F);
 
