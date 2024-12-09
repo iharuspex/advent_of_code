@@ -4,11 +4,11 @@ with Ada.Long_Long_Integer_Text_IO; with Ada.Long_Long_Integer_Text_IO;
 
 
 procedure Main is
-   Filename : constant String := "test1.txt";
+   --  Filename : constant String := "test1.txt";
 
    --  Filename : constant String := "test2.txt";
 
-   --  Filename : constant String := "input.txt";
+   Filename : constant String := "input.txt";
 
 
    type Cell_Type is (Block, Empty);
@@ -157,16 +157,16 @@ procedure Main is
          Cells_Type : Cell_Type;
       end record;
 
-      type Files is array (0 .. Files_Num) of File;
+      type Files is array (0 .. Files_Num-1) of File;
 
       Result : Long_Long_Integer := 0;
 
-      Disk_Files : Files;
+      Disk_Files : Files := (others => (0, 0, 0, 0, Empty));
       Disk_Files_Num : Natural := 0;
       Disk_Map : Cells_Array := Disk;
       Disk_Idx : Natural := 0;
 
-      New_Disk_Files : Files := (others => (0, 0, 0, 0, 0));
+      New_Disk_Files : Files := (others => (0, 0, 0, 0, Empty));
       New_Disk_Files_Idx : Natural := 0;
 
    begin
@@ -185,83 +185,45 @@ procedure Main is
                                          Cells_Type =>
                                            Disk_Map (Disk_Idx).T);
 
-         Put_Line (Disk_Files (Disk_Files_Num).First'Image & ".."
-                   & Disk_Files (Disk_Files_Num).Last'Image & " = "
-                   & Disk_Files (Disk_Files_Num).Data'Image & " size= "
-                   & Disk_Files (Disk_Files_Num).Size'Image & " of "
-                   & Disk_Files (Disk_Files_Num).Cells_Type'Image);
+         --  Put_Line (Disk_Files (Disk_Files_Num).First'Image & ".."
+         --            & Disk_Files (Disk_Files_Num).Last'Image & " = "
+         --            & Disk_Files (Disk_Files_Num).Data'Image & " size= "
+         --            & Disk_Files (Disk_Files_Num).Size'Image & " of "
+         --            & Disk_Files (Disk_Files_Num).Cells_Type'Image);
+
+         if Disk_Files (Disk_Files_Num).Data = 9999 then
+            -- crutch :>>>
+            exit;
+         end if;
 
          Disk_Idx := Disk_Idx + Disk_Map (Disk_Idx).Size;
          Disk_Files_Num := Disk_Files_Num + 1;
       end loop;
 
-      for I in Disk_Files'Range loop
-         for J in reverse Disk_Files'Range loop
-            if Disk_Files (I).Cells_Type = Empty then
-               if Disk_Files (J).Cells_Type = Block then
-                  if Disk_Files (I).Size >= Disk_Files (J).Size then
+      for J in reverse Disk_Files'Range loop
+         if Disk_Files (J).Cells_Type = Block then
 
+            for I in Disk_Files'Range loop
+               exit when Disk_Files (I).First > Disk_Files (J).First;
+               if Disk_Files (I).Cells_Type = Empty and Disk_Files (I).Size /= 0 then
+                  if Disk_Files (I).Size >= Disk_Files (J).Size then
+                     Disk_Files (I).Size := Disk_Files (I).Size - Disk_Files (J).Size;
+                     --  Disk_Files (I).Last := Disk_Files (I).First + Disk_Files (J).Size-1;
+                     Disk_Map (Disk_Files (I).First..Disk_Files (I).First + Disk_Files (J).Size-1) := (others => (Disk_Files (J).Data, Disk_Files (J).Size, Disk_Files (J).Cells_Type));
+                     Disk_Map (Disk_Files (J).First..Disk_Files (J).Last) := (others => (0, 0, Empty));
+                     Disk_Files (I).First := Disk_Files (I).First + Disk_Files (J).Size;
+                     --  Print_Disk (Disk_Map);
+                     exit;
                   end if;
                end if;
-            else
-               New_Disk_Files (New_Disk_Files_Idx) := Disk_Files (I);
-               New_Disk_Files_Idx := New_Disk_Files_Idx + 1;
-            end if;
-         end loop;
+            end loop;
+
+         end if;
       end loop;
 
-      --  for I in Disk_Map'Range loop
-      --     if Disk_Map (I).T = Empty then
-      --
-      --        loop
-      --           ---
-      --           Empty_Size := Disk_Map (I).Size;
-      --
-      --           -- find bounds of Block
-      --           while Disk_Map (Cell_Idx).T /= Block loop
-      --              Cell_Idx := Cell_Idx - 1;
-      --           end loop;
-      --           File_End := Cell_Idx;
-      --
-      --           exit when File_End <= I;
-      --
-      --           while Disk_Map (File_End).Data = Disk_Map (Cell_Idx-1).Data loop
-      --              Cell_Idx := Cell_Idx - 1;
-      --              Put_Line (Disk_Map (Cell_Idx).Data'Image);
-      --           end loop;
-      --           File_Start := Cell_Idx;
-      --           File_Size := Disk_Map (File_Start).Size;
-      --
-      --           -- move
-      --           if Empty_Size >= File_Size then
-      --              Disk_Map (I .. I+File_Size-1) := Disk_Map (File_Start..File_End);
-      --              Disk_Map (File_Start..File_End) := (others => (0, 0, Empty));
-      --
-      --              Empty_End := I+File_Size;
-      --
-      --              -- update empty size
-      --              while Disk_Map(Empty_End).T /= Block loop
-      --                 Disk_Map (Empty_End).Size := Empty_Size - File_Size;
-      --                 Empty_End := Empty_End + 1;
-      --              end loop;
-      --
-      --              Cell_Idx := Cell_Idx - 1;
-      --
-      --              exit;
-      --           else
-      --              -- find next block
-      --              while Disk_Map (Cell_Idx).Data = Disk_Map (Cell_Idx-1).Data or Disk_Map (Cell_Idx).T = Empty loop
-      --                 Cell_Idx := Cell_Idx - 1;
-      --                 Put_Line (Disk_Map (Cell_Idx).Data'Image);
-      --              end loop;
-      --           end if;
-      --
-      --           Print_Disk (Disk_Map);
-      --           ---
-      --        end loop;
-      --
-      --     end if;
-      --  end loop;
+      Print_Disk (Disk_Map);
+
+      Result := Checksum (Disk_Map);
 
       Put_Line ("Part2 : " & Result'Image);
    end Part2;
