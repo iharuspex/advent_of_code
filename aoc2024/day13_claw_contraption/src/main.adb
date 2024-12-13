@@ -7,9 +7,9 @@ procedure Main is
    Filename : constant String := "input.txt";
 
    type In_Data_Type is record
-      Xa, Xb : Natural;
-      Ya, Yb : Natural;
-      Prize_X, Prize_Y : Natural;
+      Xa, Xb : Long_Long_Integer;
+      Ya, Yb : Long_Long_Integer;
+      Prize_X, Prize_Y : Long_Long_Integer;
    end record;
 
 
@@ -46,11 +46,11 @@ procedure Main is
          Y_Str : String := Data_Str (Comma_Pos+4 .. Data_Str'Last);
       begin
          if Btn_Type = A then
-            D.Xa := Natural'Value (X_Str);
-            D.Ya := Natural'Value (Y_Str);
+            D.Xa := Long_Long_Integer'Value (X_Str);
+            D.Ya := Long_Long_Integer'Value (Y_Str);
          else
-            D.Xb := Natural'Value (X_Str);
-            D.Yb := Natural'Value (Y_Str);
+            D.Xb := Long_Long_Integer'Value (X_Str);
+            D.Yb := Long_Long_Integer'Value (Y_Str);
          end if;
       end Parse_Button_Str;
 
@@ -60,8 +60,8 @@ procedure Main is
          X_Str : String := Data_Str (Data_Str'First+3 .. Comma_Pos-1);
          Y_Str : String := Data_Str (Comma_Pos+4 .. Data_Str'Last);
       begin
-         D.Prize_X := Natural'Value (X_Str);
-         D.Prize_Y := Natural'Value (Y_Str);
+         D.Prize_X := Long_Long_Integer'Value (X_Str);
+         D.Prize_Y := Long_Long_Integer'Value (Y_Str);
       end Parse_Prize_Str;
 
    begin
@@ -83,21 +83,26 @@ procedure Main is
    -- Solve --
    -----------
 
-   function Solve (D : In_Data_Type) return Natural is
-      Result : Natural := 0;
-      Det : Float := 0.0;
+   function Solve (D : in out In_Data_Type; P2 : Boolean := False) return Long_Long_Integer is
+      Result : Long_Long_Integer := 0;
+      Det : Long_Long_Float := 0.0;
 
-      A, B : Float;
+      A, B : Long_Long_Float;
    begin
-      Det := Float((D.Xa * D.Yb) - (D.Xb * D.Ya));
-
-      if Det /= 0.0 then
-         A := Float(D.Prize_X * D.Yb - D.Prize_Y * D.Xb) / Det;
-         B := Float(D.Prize_Y * D.Xa - D.Prize_X * D.Ya) / Det;
+      if P2 = True then
+         D.Prize_X := D.Prize_X + 10_000_000_000_000;
+         D.Prize_Y := D.Prize_Y + 10_000_000_000_000;
       end if;
 
-      if (A = Float'Floor(A)) and (B = Float'Floor(B)) then
-         Result := Natural((A * 3.0) + B);
+      Det := Long_Long_Float((D.Xa * D.Yb) - (D.Xb * D.Ya));
+
+      if Det /= 0.0 then
+         A := Long_Long_Float(D.Prize_X * D.Yb - D.Prize_Y * D.Xb) / Det;
+         B := Long_Long_Float(D.Prize_Y * D.Xa - D.Prize_X * D.Ya) / Det;
+      end if;
+
+      if (A = Long_Long_Float'Floor(A)) and (B = Long_Long_Float'Floor(B)) then
+         Result := Long_Long_Integer((A * 3.0) + B);
       end if;
 
       return Result;
@@ -107,7 +112,8 @@ procedure Main is
    Data : In_Data_Type := (others => (0));
    Data_Vec : Vector;
 
-   Result_P1 : Natural := 0;
+   Result_P1 : Long_Long_Integer := 0;
+   Result_P2 : Long_Long_Integer := 0;
 
 begin
    Open (F, In_File, Filename);
@@ -124,8 +130,7 @@ begin
 
             if Res = True then
                Res := False;
-               --  Temp := Solve (Data);
-               Print_Data (Data);
+               --  Print_Data (Data);
                Data_Vec.Append (Data);
             end if;
          end if;
@@ -136,6 +141,11 @@ begin
       Result_P1 := Result_P1 + Solve (D);
    end loop;
 
+   for D of Data_Vec loop
+      Result_P2 := Result_P2 + Solve (D, True);
+   end loop;
+
    Put_Line ("Part1: " & Result_P1'Image);
+   Put_Line ("Part2: " & Result_P2'Image);
 
 end Main;
