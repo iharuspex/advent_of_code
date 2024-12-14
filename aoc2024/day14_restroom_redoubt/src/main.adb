@@ -28,9 +28,6 @@ procedure Main is
    type Map_Type is array (Natural range <>, Natural range <>) of Natural;
 
    F : File_Type;
-   Q1, Q2, Q3, Q4 : Natural := 0;
-   Result_P1 : Natural := 0;
-
 
    Map : Map_Type (0 .. Map_Height-1, 0 .. Map_Width-1) :=
      (others => (others => 0));
@@ -143,8 +140,60 @@ procedure Main is
       else
          Robot.P.Y := abs(M'Length(1) - abs(Mov_Y));
       end if;
-
    end Move;
+
+   -----------
+   -- Part1 --
+   -----------
+
+   procedure Part1 (M: Map_Type) is
+      P1_Map : Map_Type := M;
+
+      Q1, Q2, Q3, Q4 : Natural := 0;
+      Result_P1 : Natural := 0;
+   begin
+      Put_Line ("Quadrants:");
+      for I in P1_Map'Range(1) loop
+         P1_Map (I, Map_Width / 2) := 7999;
+      end loop;
+
+      for I in P1_Map'Range(2) loop
+         P1_Map (Map_Height / 2, I) := 7999;
+      end loop;
+
+      -- calc result
+
+      for I in P1_Map'First(1) .. (Map_Height / 2) - 1 loop
+         -- Q1
+         for J in P1_Map'First(2) .. (Map_Width / 2) - 1 loop
+            Q1 := Q1 + P1_Map (I, J);
+         end loop;
+
+         -- Q2
+         for J in (Map_Width / 2) + 1 .. P1_Map'Last(2) loop
+            Q2 := Q2 + P1_Map (I, J);
+         end loop;
+      end loop;
+
+
+
+      for I in (Map_Height / 2) + 1 .. P1_Map'Last(1) loop
+         -- Q3
+         for J in P1_Map'First(2) .. (Map_Width / 2) - 1 loop
+            Q3 := Q3 + P1_Map (I, J);
+         end loop;
+
+         -- Q4
+         for J in (Map_Width / 2) + 1 .. P1_Map'Last(2) loop
+            Q4 := Q4 + P1_Map (I, J);
+         end loop;
+      end loop;
+
+      Print_Map (P1_Map);
+
+      Result_P1 := Q1 * Q2 * Q3 * Q4;
+      Put_Line ("Part1: " & Result_P1'Image);
+   end Part1;
 
 begin
    Open (F, In_File, Filename);
@@ -167,57 +216,22 @@ begin
    Print_Map (Map);
    New_Line;
 
-   for I in 1 .. 100 loop
+   for I in 1 .. 10000 loop
       for R of Robots loop
          Move (Map, R);
       end loop;
-   end loop;
 
-   Put_Line ("After 100 seconds:");
-   Place_To_Map (Map, Robots);
-   Print_Map (Map);
-   New_Line;
+      if I = 100 then
+         Place_To_Map (Map, Robots);
+         Part1 (Map);
+      end if;
 
-   Put_Line ("Quadrants:");
-   for I in Map'Range(1) loop
-      Map (I, Map_Width / 2) := 7999;
+      if I = 6876 then
+         Place_To_Map (Map, Robots);
+         Print_Map (Map);
+         Put_Line ("Part2: " & I'Image & " =))");
+      end if;
    end loop;
-
-   for I in Map'Range(2) loop
-      Map (Map_Height / 2, I) := 7999;
-   end loop;
-
-   -- calc result
-   -- Q1
-   for I in Map'First(1) .. (Map_Height / 2) - 1 loop
-      for J in Map'First(2) .. (Map_Width / 2) - 1 loop
-         Q1 := Q1 + Map (I, J);
-      end loop;
-   end loop;
-   -- Q2
-   for I in Map'First(1) .. (Map_Height / 2) - 1 loop
-      for J in (Map_Width / 2) + 1 .. Map'Last(2) loop
-         Q2 := Q2 + Map (I, J);
-      end loop;
-   end loop;
-
-   -- Q3
-   for I in (Map_Height / 2) + 1 .. Map'Last(1) loop
-      for J in Map'First(2) .. (Map_Width / 2) - 1 loop
-         Q3 := Q3 + Map (I, J);
-      end loop;
-   end loop;
-   -- Q4
-   for I in (Map_Height / 2) + 1 .. Map'Last(1) loop
-      for J in (Map_Width / 2) + 1 .. Map'Last(2) loop
-         Q4 := Q4 + Map (I, J);
-      end loop;
-   end loop;
-
-   Print_Map (Map);
-
-   Result_P1 := Q1 * Q2 * Q3 * Q4;
-   Put_Line ("Part1: " & Result_P1'Image);
 
    Close (F);
 end Main;
