@@ -1,15 +1,53 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Containers.Vectors;
+with Ada.Containers.Hashed_Sets;
 
 procedure Main is
-   Filename : constant String := "test1.txt";
-   Map_Size : constant Natural := 5;
+   --  Filename : constant String := "test_mini.txt";
+   --  Map_Size : constant Natural := 4;
+
+   --  Filename : constant String := "test1.txt";
+   --  Map_Size : constant Natural := 5;
 
    --  Filename : constant String := "test2.txt";
    --  Map_Size : constant Natural := 10;
 
-   --  Filename : constant String := "input.txt";
-   --  Map_Size : constant Natural := 140;
+   Filename : constant String := "input.txt";
+   Map_Size : constant Natural := 140;
+
+   type Dir_Type is (Up, Down, Left, Right);
+   type Side_Type is record
+      C1  : Natural;
+      C2  : Natural;
+      Dir : Dir_Type;
+   end record;
+
+   --  package Side_Type_Hash is new Ada.Containers.Hash_Type(Side_Type);
+
+   ----------
+   -- Hash --
+   ----------
+
+   function Hash(Element : Side_Type) return Ada.Containers.Hash_Type is
+   begin
+      return Ada.Containers.Hash_Type(Natural(Element.C1) + Natural(Element.C2) + Dir_Type'Pos(Element.Dir));
+   end Hash;
+
+   -------------------------
+   -- Equivalent_Elements --
+   -------------------------
+
+   function Equivalent_Elements(Left, Right : Side_Type) return Boolean is
+   begin
+      return Left.C1 = Right.C1 and Left.C2 = Right.C2 and Left.Dir = Right.Dir;
+   end Equivalent_Elements;
+
+   package Side_Type_Sets is new Ada.Containers.Hashed_Sets
+     (Element_Type => Side_Type,
+      Hash => Hash,
+      Equivalent_Elements => Equivalent_Elements,
+      "=" => Equivalent_Elements);
+   use Side_Type_Sets;
 
    type Cell is record
       Tag : Character;
@@ -17,16 +55,17 @@ procedure Main is
    end record;
 
    type Group is record
-      Area : Natural;
-      Perimeter : Natural;
+      Area : Natural := 0;
+      Perimeter : Natural := 0;
+      Sides : Side_Type_Sets.Set;
    end record;
-
-   type Map_Type is array (1 .. Map_Size, 1 .. Map_Size) of Cell;
 
    package Group_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive,
       Element_Type => Group);
    use Group_Vectors;
+
+   type Map_Type is array (1 .. Map_Size, 1 .. Map_Size) of Cell;
 
    F : File_Type;
 
@@ -59,7 +98,8 @@ procedure Main is
    procedure Print_Groups (Gr : Vector) is
    begin
       for G of Gr loop
-         Put_Line ("Area:" & G.Area'Image & ", Perimeter:" & G.Perimeter'Image);
+         Put_Line ("Area:" & G.Area'Image & ", Perimeter:" & G.Perimeter'Image &
+                  ", Sides:" & G.Sides.Length'Image);
       end loop;
    end Print_Groups;
 
@@ -105,6 +145,7 @@ procedure Main is
 
    procedure DFS (M: in out Map_Type; Y, X : Natural; Gr : in out Group) is
       Current_Tag : Character := M (Y,X).Tag;
+      Side : Side_Type;
    begin
       -- look around and go to the next sector
       -- check coords:
@@ -140,6 +181,10 @@ procedure Main is
          end if;
       else
          Gr.Perimeter := Gr.Perimeter + 1;
+         Side.C1 := Y;
+         Side.C2 := Y - 1;
+         Side.Dir := Up;
+         Gr.Sides.Include (Side);
       end if;
 
       if Check_Coords (M, Current_Tag, Y, X+1) = True then
@@ -148,6 +193,10 @@ procedure Main is
          end if;
       else
          Gr.Perimeter := Gr.Perimeter + 1;
+         Side.C1 := X;
+         Side.C2 := X + 1;
+         Side.Dir := Right;
+         Gr.Sides.Include (Side);
       end if;
 
       if Check_Coords (M, Current_Tag, Y+1, X) = True then
@@ -156,6 +205,10 @@ procedure Main is
          end if;
       else
          Gr.Perimeter := Gr.Perimeter + 1;
+         Side.C1 := Y;
+         Side.C2 := Y + 1;
+         Side.Dir := Down;
+         Gr.Sides.Include (Side);
       end if;
 
       if Check_Coords (M, Current_Tag, Y, X-1) = True then
@@ -164,6 +217,10 @@ procedure Main is
          end if;
       else
          Gr.Perimeter := Gr.Perimeter + 1;
+         Side.C1 := X;
+         Side.C2 := X - 1;
+         Side.Dir := Left;
+         Gr.Sides.Include (Side);
       end if;
 
    end DFS;
@@ -173,16 +230,17 @@ procedure Main is
    -------------
 
    procedure Process (M : in out Map_Type) is
-      Result : Natural := 0;
+      Result_P1 : Natural := 0;
+      Result_P2 : Natural := 0;
 
    begin
       for I in M'Range(1) loop
          for J in M'Range(2) loop
             declare
-               Gr : Group := (0, 0);
+               Gr : Group;
             begin
                DFS (M, I, J, Gr);
-               if Gr /= (0, 0) then
+               if Gr.Area /= 0 and Gr.Perimeter /= 0 then
                   Groups.Append (Gr);
                end if;
             end;
@@ -192,10 +250,12 @@ procedure Main is
       Print_Groups (Groups);
 
       for G of Groups loop
-         Result := Result + (G.Area * G.Perimeter);
+         Result_P1 := Result_P1 + (G.Area * G.Perimeter);
+         Result_P2 := Result_P2 + (G.Area * Natural(G.Sides.Length));
       end loop;
 
-      Put_Line ("Part1: " & Result'Image);
+      Put_Line ("Part1: " & Result_P1'Image);
+      Put_Line ("Part2: " & Result_P2'Image);
    end Process;
 
 begin
