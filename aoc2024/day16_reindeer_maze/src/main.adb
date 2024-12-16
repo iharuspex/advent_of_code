@@ -2,15 +2,22 @@ with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Containers.Vectors;
 with Ada.Containers.Indefinite_Vectors;
 with Ada.Containers.Indefinite_Hashed_Maps;
-with Ada.Containers.Synchronized_Queue_Interfaces;
-with Ada.Containers.Unbounded_Priority_Queues;
 
 procedure Main is
-   Filename : constant String := "test_mini.txt";
-   Map_Size : constant Natural := 7;
+   --  Filename : constant String := "test_mini.txt";
+   --  Map_Size : constant Natural := 7;
+
+   Filename : constant String := "test1.txt";
+   Map_Size : constant Natural := 15;
+
+   --  Filename : constant String := "test2.txt";
+   --  Map_Size : constant Natural := 17;
+
+   --  Filename : constant String := "input.txt";
+   --  Map_Size : constant Natural := 141;
 
    type Point_Type is record
-      X, Y : Natural;
+      Y, X : Integer;
    end record;
 
    function "=" (Left, Right: Point_Type) return Boolean is
@@ -25,14 +32,22 @@ procedure Main is
       Dir : Dir_Type;
    end record;
 
+   type Cost_Type is record
+      Cost : Integer;
+      Dir  : Dir_Type;
+   end record;
+
    type Queue_Element is record
-      Prio : Natural;
+      Priority : Natural;
       Cell_With_Dir : Cell_Dir_Type;
    end record;
 
+   function "<" (Left, Right: Queue_Element) return Boolean is
+   begin
+      return Left.Priority < Right.Priority;
+   end "<";
+
    type Map_Type is array (Positive range <>, Positive range <>) of Character;
-
-
 
    package Cell_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Natural,
@@ -41,6 +56,10 @@ procedure Main is
    package Cell_Dir_Vectors is new Ada.Containers.Indefinite_Vectors
      (Index_Type   => Natural,
       Element_Type => Cell_Dir_Type);
+
+   ----------
+   -- Hash --
+   ----------
 
    function Hash (Key : Point_Type) return Ada.Containers.Hash_Type is
    begin
@@ -54,24 +73,57 @@ procedure Main is
       Equivalent_Keys => "=",
       "="             => "=");
 
-   function Get_Priority (Element : Queue_Element) return Natural is
+   package Cost_Dir_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => Point_Type,
+      Element_Type    => Cost_Type,
+      Hash            => Hash,
+      Equivalent_Keys => "=",
+      "="             => "=");
+
+   package Priority_Queues is new Ada.Containers.Vectors
+     (Index_Type => Positive,
+      Element_Type => Queue_Element);
+
+   package Priority_Queue_Sorting is new
+     Priority_Queues.Generic_Sorting;
+   use Priority_Queue_Sorting;
+
+   subtype Priority_Queue is Priority_Queues.Vector;
+
+   ----------
+   -- Push --
+   ----------
+
+   procedure Push(Q: in out Priority_Queue; Value: Cell_Dir_Type; Prio: Natural) is
+      New_Node : Queue_Element := (Priority => Prio, Cell_With_Dir => Value);
    begin
-      return Element.Prio;
-   end Get_Priority;
-   function Before (Left, Right : Natural) return Boolean is
+      Q.Append(New_Node);
+      Sort (Q);
+   end Push;
+
+   ---------
+   -- Pop --
+   ---------
+
+   function Pop(Q: in out Priority_Queue) return Queue_Element is
+      Result : Queue_Element;
    begin
-      return Left > Right;
-   end Before;
-   package Cell_Dir_Queues is new Ada.Containers.Synchronized_Queue_Interfaces
-     (Element_Type => Queue_Element);
-   package Cell_Dir_Priority_Queue is new Ada.Containers.Unbounded_Priority_Queues
-     (Queue_Interfaces => Cell_Dir_Queues,
-      Queue_Priority => Natural);
+      if Q.Last_Index > 0 then
+         Result := Q(1);
+         Q.Delete(1);
+         return Result;
+      else
+         raise Constraint_Error with "Queue is empty";
+      end if;
+   end Pop;
 
    F : File_Type;
 
    Map : Map_Type (1 .. Map_Size, 1 .. Map_Size);
    Map_Y_Idx : Natural := 0;
+
+   Start_Point : Point_Type;
+   End_Point : Point_Type;
 
    ---------------
    -- Print_Map --
@@ -96,6 +148,25 @@ procedure Main is
       return abs(Current.X - Goal.X) + abs(Current.Y - Goal.Y);
    end Manhattan_Distance;
 
+   -------------
+   -- Get_Dir --
+   -------------
+
+   function Get_Dir(Current, Next : Point_Type) return Dir_Type is
+   begin
+      if Next.Y > Current.Y then
+         return Down;
+      elsif Next.Y < Current.Y then
+         return Up;
+      elsif Next.X > Current.X then
+         return Right;
+      elsif Next.X < Current.X then
+         return Left;
+      end if;
+
+      return Up;
+   end Get_Dir;
+
    ------------
    -- A_Star --
    ------------
@@ -105,15 +176,119 @@ procedure Main is
                     Path : out Cell_Vectors.Vector;
                     Dirs : out Cell_Dir_Vectors.Vector)
    is
-      Frontier : Cell_Dir_Priority_Queue.Queue;
+      Frontier : Priority_Queue;
       Came_From : Cell_Dir_Maps.Map;
-      Cost_So_Far : Cell_Dir_Maps.Map;
+      Cost_So_Far : Cost_Dir_Maps.Map;
       Current : Point_Type;
-      Dir : Dir_Type;
+      Dir : Dir_Type := Right;
       Priority : Integer;
+
+      Element : Queue_Element;
+
+      type Dirs_Array_Type is array (1 .. 4) of Point_Type;
+
+      Dir_Array : constant Dirs_Array_Type := ((0, 1), (1, 0), (0, -1), (-1, 0));
    begin
-      null;
+      Push (Frontier, (Start_P, Dir), 0);
+      Came_From.Include (Start_P, (Start_P, Dir));
+      Cost_So_Far.Include (Start_P, (0, Dir));
+
+      while not Frontier.Is_Empty loop
+         Element := Pop (Frontier);
+         Current := Element.Cell_With_Dir.Cell;
+         Dir := Element.Cell_With_Dir.Dir;
+
+         exit when Element.Cell_With_Dir.Cell = End_P;
+
+         for D of Dir_Array loop
+            declare
+               Next_Cell : Point_Type := (Current.Y + D.Y, Current.X + D.X);
+               New_Dir : Dir_Type := Get_Dir (Current, Next_Cell);
+               Turn_Cost : Integer := (if New_Dir /= Dir then 10 else 1);
+               --  Turn_Cost : Integer := 1;
+               New_Cost : Integer := Cost_So_Far.Element (Current).Cost + Turn_Cost;
+            begin
+               if Next_Cell.Y in M'Range(1) and Next_Cell.X in M'Range(2) and
+                 M (Next_Cell.Y, Next_Cell.X) /= '#' then
+                  if not Cost_So_Far.Contains (Next_Cell) or else New_Cost < Cost_So_Far.Element (Next_Cell).Cost then
+                     Cost_So_Far.Include (Next_Cell, (New_Cost, New_Dir));
+                     Priority := New_Cost + Manhattan_Distance (End_P, Next_Cell);
+                     Push (Frontier, (Next_Cell, New_Dir), Priority);
+                     Came_From.Include (Next_Cell, (Current, New_Dir));
+                  end if;
+               end if;
+            end;
+         end loop;
+      end loop;
+
+      while Current /= Start_P loop
+         Path.Append (Current);
+         Dirs.Append((Current, Dir));
+         Current := Came_From.Element(Current).Cell;
+         Dir := Came_From.Element(Current).Dir;
+      end loop;
+
+      Path.Append (Start_P);
+      Dirs.Append ((Start_P, Dir));
+
+      Path.Reverse_Elements;
+      Dirs.Reverse_Elements;
    end A_Star;
+
+   ----------------
+   -- Print_Path --
+   ----------------
+
+   procedure Print_Path (M : Map_Type; Path : Cell_Vectors.Vector; Dirs : Cell_Dir_Vectors.Vector) is
+      Direction_Map : constant array (Dir_Type) of Character := ('^', 'v', '<', '>');
+   begin
+      for I in M'Range (1) loop
+         for J in M'Range(2) loop
+            if (I, J) = Path.First_Element then
+               Put ('S');
+            elsif (I, J) = Path.Last_Element then
+               Put ('E');
+            elsif Path.Contains ((I, J)) then
+               declare
+                  Idx : constant Natural := Path.Find_Index((I, J));
+               begin
+                  Put (Direction_Map (Dirs.Element (Idx).Dir));
+               end;
+            else
+               Put (M (I, J));
+            end if;
+         end loop;
+         New_Line;
+      end loop;
+   end Print_Path;
+
+   -----------------
+   -- Calc_Result --
+   -----------------
+
+   procedure Calc_Result (Dirs : Cell_Dir_Vectors.Vector) is
+      Steps : Integer := Dirs.Last_Index;
+      Turns : Integer := 0;
+
+      Result : Integer := 0;
+   begin
+      for I in 2 .. Dirs.Last_Index loop
+         if Dirs (I).Dir /= Dirs (I - 1).Dir then
+            Turns := Turns + 1;
+         end if;
+      end loop;
+
+      Put_Line ("Steps:" & Steps'Image);
+      Put_Line ("Turns:" & Turns'Image);
+
+      if Dirs (1).Dir = Up then
+         Turns := Turns + 1;
+      end if;
+
+      Result := (Turns * 1000) + Steps;
+
+      Put_Line ("Result:" & Result'Image);
+   end Calc_Result;
 
 begin
    Open (F, In_File, Filename);
@@ -124,12 +299,30 @@ begin
       begin
          Map_Y_Idx := Map_Y_Idx + 1;
          for I in Line'Range loop
+            if Line (I) = 'S' then
+               Start_Point.Y := Map_Y_Idx;
+               Start_Point.X := I;
+            elsif Line (I) = 'E' then
+               End_Point.Y := Map_Y_Idx;
+               End_Point.X := I;
+            end if;
             Map (Map_Y_Idx, I) := Line (I);
          end loop;
       end;
    end loop;
 
    Print_Map (Map);
+
+   declare
+      Path : Cell_Vectors.Vector;
+      Dirs : Cell_Dir_Vectors.Vector;
+   begin
+      A_Star (Map, Start_Point, End_Point, Path, Dirs);
+
+      Print_Path (Map, Path, Dirs);
+
+      Calc_Result (Dirs);
+   end;
 
    Close (F);
 end Main;
